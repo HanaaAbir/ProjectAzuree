@@ -1,25 +1,13 @@
-#See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
-
-#Depending on the operating system of the host machines(s) that will build or run the containers, the image specified in the FROM statement may need to be changed.
-#For more information, please see https://aka.ms/containercompat
-
-FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS base
-WORKDIR /app
+FROM ubuntu
+RUN apt-get update
+RUN apt-get install -y apache2
+ENV APACHE_RUN_USER www-data
+ENV APACHE_RUN_GROUP www-data
+ENV APACHE_LOG_DIR /var/log/apache2
+ENV APACHE_LOCK_DIR /var/lock/apache2
+ENV APACHE_PID_FILE /var/run/apache2.pid
 EXPOSE 80
-EXPOSE 443
-
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
-WORKDIR /src
-COPY ["ProjectAzure.csproj", "."]
-RUN dotnet restore "./ProjectAzure.csproj"
-COPY . .
-WORKDIR "/src/."
-RUN dotnet build "ProjectAzure.csproj" -c Release -o /app/build
-
-FROM build AS publish
-RUN dotnet publish "ProjectAzure.csproj" -c Release -o /app/publish /p:UseAppHost=false
-
-FROM base AS final
-WORKDIR /app
-COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "ProjectAzure.dll"]
+COPY ./ProjectAzure /var/www/AdminLTE-3.2.0
+RUN mkdir -p /etc/apache2/sites-enabled/
+COPY ./config/apache-config.conf /etc/apache2/sites-enabled/000-default.conf
+CMD ["apache2ctl", "-D", "FOREGROUND"]
